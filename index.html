@@ -463,8 +463,9 @@
             <input class="search-input" id="shares-search" type="text" placeholder="Search player…" oninput="searchShares(this.value)" />
           </div>
           <div class="filter-pills">
-            <button class="filter-pill active" data-filter="all" onclick="setSharesFilter('all')">All players</button>
+            <button class="filter-pill active" data-filter="all" onclick="setSharesFilter('all')">All</button>
             <button class="filter-pill" data-filter="multi" onclick="setSharesFilter('multi')">Multiple leagues</button>
+            <button class="filter-pill" data-filter="picks" onclick="setSharesFilter('picks')">Draft picks</button>
           </div>
         </div>
         <div class="shares-grid" id="shares-grid"></div>
@@ -639,11 +640,12 @@ async function loadRostersAndUsers(tab) {
   }
   try {
     const lid = state.selectedLeague.league_id;
-    const [rosters, users, drafts] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users'), api('/league/' + lid + '/drafts'), loadPlayers()]);
+    const [rosters, users, drafts, tradedPicks] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users'), api('/league/' + lid + '/drafts'), api('/league/' + lid + '/traded_picks'), loadPlayers()]);
     state.rosters = rosters || []; state.users = users || [];
     const futureDrafts = (drafts || []).filter(d => d.status !== 'complete');
     const pickArrays = await Promise.all(futureDrafts.map(d => api('/draft/' + d.draft_id + '/picks').then(picks => ({ season: d.season, picks: picks || [] }))));
-    state.leagueTradedPicks = pickArrays.flatMap(({ season, picks }) => picks.map(p => ({ season, round: p.round, roster_id: p.roster_id })));
+    const draftPicks = pickArrays.flatMap(({ season, picks }) => picks.filter(p => p.roster_id).map(p => ({ season, round: p.round, roster_id: p.roster_id })));
+    state.leagueTradedPicks = draftPicks.length ? draftPicks : (tradedPicks || []).map(p => ({ season: p.season, round: p.round, roster_id: p.roster_id }));
     state.rostersLoaded = true;
     renderStandings(); renderRosters();
   } catch(e) {
@@ -697,8 +699,10 @@ function renderRosters() {
     const fpta = ((r.settings?.fpts_against||0)+(r.settings?.fpts_against_decimal||0)/100).toFixed(2);
     const pct = Math.round((parseFloat(fpts)/maxFpts)*100);
     const waiver = r.settings?.waiver_position;
-    const starters = (r.starters||[]).slice(0,6).map(pid => '<span class="player-pill starter">' + playerName(pid) + '</span>').join('');
-    const bench = (r.players||[]).filter(p => !(r.starters||[]).includes(p)).slice(0,4).map(pid => '<span class="player-pill">' + playerName(pid) + '</span>').join('');
+    const validStarters = (r.starters||[]).filter(s => s && s !== '0');
+    const starterSet = new Set(validStarters);
+    const starters = validStarters.map(pid => '<span class="player-pill starter">' + playerName(pid) + '</span>').join('');
+    const bench = (r.players||[]).filter(p => !starterSet.has(p)).map(pid => '<span class="player-pill">' + playerName(pid) + '</span>').join('');
     const myPicks = (state.leagueTradedPicks||[]).filter(p => p.roster_id === r.roster_id).sort((a,b) => a.season - b.season || a.round - b.round);
     const picksHtml = myPicks.length ? myPicks.map(p => '<span class="player-pill pick">' + p.season + ' ' + ordinal(p.round) + '</span>').join('') : '';
     return '<div class="roster-card">' +
@@ -844,13 +848,16 @@ async function loadAllShares() {
     await loadPlayers();
     const results = await Promise.all(
       state.leagues.map(async l => {
-        const [rosters, drafts] = await Promise.all([
+        const [rosters, drafts, tradedPicks] = await Promise.all([
           api('/league/' + l.league_id + '/rosters'),
-          api('/league/' + l.league_id + '/drafts')
+          api('/league/' + l.league_id + '/drafts'),
+          api('/league/' + l.league_id + '/traded_picks')
         ]);
         const futureDrafts = (drafts || []).filter(d => d.status !== 'complete');
         const pickArrays = await Promise.all(futureDrafts.map(d => api('/draft/' + d.draft_id + '/picks').then(picks => ({ season: d.season, picks: picks || [] }))));
-        const picks = pickArrays.flatMap(({ season, picks }) => picks.map(p => ({ season, round: p.round, roster_id: p.roster_id })));
+        const draftPicks = pickArrays.flatMap(({ season, picks }) => picks.filter(p => p.roster_id).map(p => ({ season, round: p.round, roster_id: p.roster_id })));
+        // merge: draft picks take precedence, fall back to traded_picks for leagues with no draft yet
+        const picks = draftPicks.length ? draftPicks : (tradedPicks || []).map(p => ({ season: p.season, round: p.round, roster_id: p.roster_id }));
         return { league: l, rosters: rosters || [], picks };
       })
     );
@@ -884,6 +891,7 @@ function renderShares() {
   const { playerLeagues, sharesFilter, sharesSearch } = state;
   let entries = Object.entries(playerLeagues);
   if (sharesFilter === 'multi') entries = entries.filter(([,ls]) => ls.length > 1);
+  if (sharesFilter === 'picks') entries = entries.filter(([pid]) => isPick(pid));
   if (sharesSearch) {
     const s = sharesSearch.toLowerCase();
     entries = entries.filter(([pid]) => playerName(pid).toLowerCase().includes(s));
