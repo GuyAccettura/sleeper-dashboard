@@ -210,6 +210,8 @@
       font-family: var(--font-mono);
     }
     .player-pill.starter { background: #E6F1FB; border-color: #B5D4F4; color: #0C447C; }
+    .player-pill.pick { background: #FAEEDA; border-color: #F5C687; color: #854F0B; }
+    .pos-badge.pos-PICK { background: #FAEEDA; color: #854F0B; }
 
     /* SCORING */
     .scoring-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
@@ -320,26 +322,28 @@
     }
     .shares-stat { font-size: 13px; color: var(--color-text-secondary); }
     .shares-stat strong { color: var(--color-text-primary); font-family: var(--font-mono); font-size: 15px; }
-    .shares-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+    .shares-grid { display: flex; flex-direction: column; gap: 0; border: 0.5px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; background: var(--color-bg); }
     .share-card {
-      background: var(--color-bg); border: 0.5px solid var(--color-border);
-      border-radius: var(--radius-lg); padding: 1rem 1.25rem;
-      border-left: 3px solid var(--color-border); transition: border-color 0.15s, box-shadow 0.15s;
+      background: var(--color-bg); border-bottom: 0.5px solid var(--color-border);
+      padding: 12px 16px; border-left: 3px solid var(--color-border);
+      display: flex; align-items: center; gap: 16px; transition: background 0.1s;
     }
-    .share-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-color: var(--color-border-secondary); }
-    .share-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-    .share-card-left { flex: 1; min-width: 0; }
-    .share-player-name { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .share-player-meta { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
-    .share-count-wrap { text-align: right; flex-shrink: 0; }
-    .share-count-num { font-size: 32px; font-weight: 700; font-family: var(--font-mono); color: var(--color-text-primary); line-height: 1; }
+    .share-card:last-child { border-bottom: none; }
+    .share-card:hover { background: var(--color-bg-secondary); }
+    .share-card-header { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+    .share-card-left { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
+    .share-player-info { min-width: 0; }
+    .share-player-name { font-size: 14px; font-weight: 600; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .share-player-meta { font-size: 11px; color: var(--color-text-secondary); margin-top: 1px; }
+    .share-count-wrap { flex-shrink: 0; display: flex; align-items: center; gap: 5px; }
+    .share-count-num { font-size: 18px; font-weight: 700; font-family: var(--font-mono); color: var(--color-text-primary); }
     .share-count-num.multi { color: #185FA5; }
-    .share-count-label { font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-    .share-leagues { display: flex; flex-wrap: wrap; gap: 5px; }
+    .share-count-label { font-size: 11px; color: var(--color-text-tertiary); }
+    .share-leagues { display: flex; flex-wrap: wrap; gap: 5px; flex: 2; justify-content: flex-end; }
     .share-league-chip {
       font-size: 11px; padding: 3px 9px; border-radius: 999px;
       background: var(--color-bg-secondary); color: var(--color-text-secondary);
-      border: 0.5px solid var(--color-border); max-width: 220px;
+      border: 0.5px solid var(--color-border); max-width: 200px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .share-league-chip.multi { background: #E6F1FB; color: #185FA5; border-color: #B5D4F4; }
@@ -483,11 +487,23 @@ async function loadPlayers() {
 }
 
 function playerName(pid) {
+  if (isPick(pid)) return pickLabel(pid);
   if (!state.players) return pid;
   const p = state.players[pid];
   if (!p) return pid;
   if (p.first_name && p.last_name) return p.first_name[0] + '. ' + p.last_name;
   return p.last_name || p.first_name || pid;
+}
+
+function isPick(pid) { return typeof pid === 'string' && pid.startsWith('__pick__'); }
+
+function ordinal(n) { return n + (['th','st','nd','rd'][n < 4 ? n : 0] || 'th'); }
+
+function pickKey(season, round) { return '__pick__' + season + '__' + round; }
+
+function pickLabel(key) {
+  const parts = key.split('__');
+  return parts[2] + ' ' + ordinal(parseInt(parts[3])) + ' Round Pick';
 }
 
 async function api(path) {
@@ -576,7 +592,7 @@ async function selectLeague(leagueId) {
   document.getElementById('lcard-' + leagueId).classList.add('selected');
   const league = state.leagues.find(l => l.league_id === leagueId);
   state.selectedLeague = league;
-  state.rosters = []; state.users = []; state.rostersLoaded = false;
+  state.rosters = []; state.users = []; state.leagueTradedPicks = []; state.rostersLoaded = false;
 
   const panel = document.getElementById('detail-panel');
   panel.style.display = 'block';
@@ -623,8 +639,12 @@ async function loadRostersAndUsers(tab) {
   }
   try {
     const lid = state.selectedLeague.league_id;
-    const [rosters, users] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users'), loadPlayers()]);
-    state.rosters = rosters || []; state.users = users || []; state.rostersLoaded = true;
+    const [rosters, users, drafts] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users'), api('/league/' + lid + '/drafts'), loadPlayers()]);
+    state.rosters = rosters || []; state.users = users || [];
+    const futureDrafts = (drafts || []).filter(d => d.status !== 'complete');
+    const pickArrays = await Promise.all(futureDrafts.map(d => api('/draft/' + d.draft_id + '/picks').then(picks => ({ season: d.season, picks: picks || [] }))));
+    state.leagueTradedPicks = pickArrays.flatMap(({ season, picks }) => picks.map(p => ({ season, round: p.round, roster_id: p.roster_id })));
+    state.rostersLoaded = true;
     renderStandings(); renderRosters();
   } catch(e) {
     document.getElementById('standings-loading').textContent = 'Could not load roster data.';
@@ -679,6 +699,8 @@ function renderRosters() {
     const waiver = r.settings?.waiver_position;
     const starters = (r.starters||[]).slice(0,6).map(pid => '<span class="player-pill starter">' + playerName(pid) + '</span>').join('');
     const bench = (r.players||[]).filter(p => !(r.starters||[]).includes(p)).slice(0,4).map(pid => '<span class="player-pill">' + playerName(pid) + '</span>').join('');
+    const myPicks = (state.leagueTradedPicks||[]).filter(p => p.roster_id === r.roster_id).sort((a,b) => a.season - b.season || a.round - b.round);
+    const picksHtml = myPicks.length ? myPicks.map(p => '<span class="player-pill pick">' + p.season + ' ' + ordinal(p.round) + '</span>').join('') : '';
     return '<div class="roster-card">' +
       '<div class="roster-owner">' + teamName + '</div>' +
       '<div class="roster-team">' + (owner !== teamName ? owner : '&nbsp;') + '</div>' +
@@ -691,6 +713,7 @@ function renderRosters() {
       '</div>' +
       '<div class="fpts-bar-wrap"><div class="fpts-label"><span>Points scored</span><span>' + fpts + '</span></div><div class="fpts-bar"><div class="fpts-fill" style="width:' + pct + '%"></div></div></div>' +
       '<div class="players-list">' + starters + bench + '</div>' +
+      (picksHtml ? '<div style="margin-top:8px;"><div class="fpts-label" style="margin-bottom:5px;"><span>Draft Picks</span></div><div class="players-list">' + picksHtml + '</div></div>' : '') +
     '</div>';
   }).join('');
   document.getElementById('rosters-content').innerHTML =
@@ -820,15 +843,29 @@ async function loadAllShares() {
   try {
     await loadPlayers();
     const results = await Promise.all(
-      state.leagues.map(l => api('/league/' + l.league_id + '/rosters').then(rosters => ({ league: l, rosters: rosters || [] })))
+      state.leagues.map(async l => {
+        const [rosters, drafts] = await Promise.all([
+          api('/league/' + l.league_id + '/rosters'),
+          api('/league/' + l.league_id + '/drafts')
+        ]);
+        const futureDrafts = (drafts || []).filter(d => d.status !== 'complete');
+        const pickArrays = await Promise.all(futureDrafts.map(d => api('/draft/' + d.draft_id + '/picks').then(picks => ({ season: d.season, picks: picks || [] }))));
+        const picks = pickArrays.flatMap(({ season, picks }) => picks.map(p => ({ season, round: p.round, roster_id: p.roster_id })));
+        return { league: l, rosters: rosters || [], picks };
+      })
     );
     const playerLeagues = {};
-    results.forEach(({ league, rosters }) => {
+    results.forEach(({ league, rosters, picks }) => {
       const myRoster = rosters.find(r => r.owner_id === state.user.user_id);
       if (!myRoster) return;
       (myRoster.players || []).forEach(pid => {
         if (!playerLeagues[pid]) playerLeagues[pid] = [];
         playerLeagues[pid].push(league);
+      });
+      picks.filter(p => p.roster_id === myRoster.roster_id).forEach(p => {
+        const key = pickKey(p.season, p.round);
+        if (!playerLeagues[key]) playerLeagues[key] = [];
+        playerLeagues[key].push(league);
       });
     });
     state.playerLeagues = playerLeagues;
@@ -853,10 +890,13 @@ function renderShares() {
   }
   entries.sort((a, b) => b[1].length - a[1].length || playerName(a[0]).localeCompare(playerName(b[0])));
 
-  const total = Object.keys(playerLeagues).length;
+  const allKeys = Object.keys(playerLeagues);
+  const totalPlayers = allKeys.filter(k => !isPick(k)).length;
+  const totalPicks = allKeys.filter(k => isPick(k)).length;
   const multi = Object.values(playerLeagues).filter(l => l.length > 1).length;
   document.getElementById('shares-stats').innerHTML =
-    '<span class="shares-stat"><strong>' + total + '</strong> unique players</span>' +
+    '<span class="shares-stat"><strong>' + totalPlayers + '</strong> unique players</span>' +
+    '<span class="shares-stat"><strong>' + totalPicks + '</strong> draft picks</span>' +
     '<span class="shares-stat"><strong>' + state.leagues.length + '</strong> leagues</span>' +
     '<span class="shares-stat"><strong>' + multi + '</strong> in multiple leagues</span>';
 
@@ -867,26 +907,27 @@ function renderShares() {
   }
 
   document.getElementById('shares-grid').innerHTML = entries.map(([pid, leagues]) => {
-    const p = state.players?.[pid];
+    const pick = isPick(pid);
+    const p = pick ? null : state.players?.[pid];
     const name = playerName(pid);
-    const pos = p?.position || '';
-    const nflTeam = p?.team ? p.team + (p.number ? ' · #' + p.number : '') : '';
+    const pos = pick ? 'PICK' : (p?.position || '');
+    const meta = pick ? 'Draft Pick' : (p?.team ? p.team + (p.number ? ' · #' + p.number : '') : '');
     const isMulti = leagues.length > 1;
-    const borderColor = POS_COLORS[pos] || 'var(--color-border)';
+    const borderColor = pick ? '#F5C687' : (POS_COLORS[pos] || 'var(--color-border)');
     const chips = leagues.map(l =>
       '<span class="share-league-chip' + (isMulti ? ' multi' : '') + '" title="' + l.name + '">' + l.name + '</span>'
     ).join('');
     return '<div class="share-card" style="border-left-color:' + borderColor + ';">' +
-      '<div class="share-card-header">' +
-        '<div class="share-card-left">' +
-          (pos ? '<span class="pos-badge pos-' + pos + '">' + pos + '</span>' : '') +
+      '<div class="share-card-left">' +
+        (pos ? '<span class="pos-badge pos-' + pos + '">' + pos + '</span>' : '') +
+        '<div class="share-player-info">' +
           '<div class="share-player-name">' + name + '</div>' +
-          (nflTeam ? '<div class="share-player-meta">' + nflTeam + '</div>' : '') +
+          (meta ? '<div class="share-player-meta">' + meta + '</div>' : '') +
         '</div>' +
-        '<div class="share-count-wrap">' +
-          '<div class="share-count-num' + (isMulti ? ' multi' : '') + '">' + leagues.length + '</div>' +
-          '<div class="share-count-label">' + (leagues.length === 1 ? 'league' : 'leagues') + '</div>' +
-        '</div>' +
+      '</div>' +
+      '<div class="share-count-wrap">' +
+        '<span class="share-count-num' + (isMulti ? ' multi' : '') + '">' + leagues.length + '</span>' +
+        '<span class="share-count-label">' + (leagues.length === 1 ? 'league' : 'leagues') + '</span>' +
       '</div>' +
       '<div class="share-leagues">' + chips + '</div>' +
     '</div>';
