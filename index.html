@@ -282,6 +282,69 @@
       .roster-grid { grid-template-columns: 1fr; }
       .panel-tab { padding: 8px 10px; font-size: 12px; }
     }
+
+    /* TOPBAR NAV */
+    .topbar-nav { display: flex; align-items: center; gap: 2px; margin-left: 16px; }
+    .nav-tab {
+      font-size: 13px; font-family: var(--font-sans); padding: 6px 14px;
+      background: transparent; border: none; color: var(--color-text-secondary);
+      cursor: pointer; border-radius: var(--radius-md); transition: all 0.15s;
+    }
+    .nav-tab:hover { background: var(--color-bg-secondary); color: var(--color-text-primary); }
+    .nav-tab.active { background: var(--color-bg-secondary); color: var(--color-text-primary); font-weight: 500; }
+
+    /* PLAYER SHARES */
+    .shares-header { margin-bottom: 1.5rem; }
+    .shares-header h2 { font-size: 20px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px; }
+    .shares-header p { font-size: 13px; color: var(--color-text-secondary); }
+    .shares-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .search-wrap { position: relative; flex: 1; min-width: 200px; max-width: 340px; }
+    .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--color-text-tertiary); pointer-events: none; font-style: normal; }
+    .search-input {
+      width: 100%; padding: 9px 14px 9px 34px; font-size: 14px; font-family: var(--font-sans);
+      background: var(--color-bg); border: 0.5px solid var(--color-border-secondary);
+      border-radius: var(--radius-md); color: var(--color-text-primary); outline: none; transition: border-color 0.15s;
+    }
+    .search-input:focus { border-color: var(--color-text-primary); }
+    .filter-pills { display: flex; gap: 6px; }
+    .filter-pill {
+      font-size: 12px; padding: 5px 13px; border-radius: 999px; cursor: pointer;
+      border: 0.5px solid var(--color-border-secondary); background: transparent;
+      color: var(--color-text-secondary); font-family: var(--font-sans); transition: all 0.15s;
+    }
+    .filter-pill.active { background: var(--color-text-primary); color: var(--color-bg); border-color: var(--color-text-primary); }
+    .shares-stats-bar {
+      display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 1.5rem;
+      padding: 12px 16px; background: var(--color-bg); border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+    }
+    .shares-stat { font-size: 13px; color: var(--color-text-secondary); }
+    .shares-stat strong { color: var(--color-text-primary); font-family: var(--font-mono); font-size: 15px; }
+    .shares-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 10px; }
+    .share-card {
+      background: var(--color-bg); border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: 1rem 1.25rem;
+      border-left: 3px solid var(--color-border); transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .share-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-color: var(--color-border-secondary); }
+    .share-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .share-card-left { flex: 1; min-width: 0; }
+    .share-player-name { font-size: 15px; font-weight: 600; color: var(--color-text-primary); margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .share-player-meta { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+    .share-count-wrap { text-align: right; flex-shrink: 0; }
+    .share-count-num { font-size: 32px; font-weight: 700; font-family: var(--font-mono); color: var(--color-text-primary); line-height: 1; }
+    .share-count-num.multi { color: #185FA5; }
+    .share-count-label { font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+    .share-leagues { display: flex; flex-wrap: wrap; gap: 5px; }
+    .share-league-chip {
+      font-size: 11px; padding: 3px 9px; border-radius: 999px;
+      background: var(--color-bg-secondary); color: var(--color-text-secondary);
+      border: 0.5px solid var(--color-border); max-width: 220px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .share-league-chip.multi { background: #E6F1FB; color: #185FA5; border-color: #B5D4F4; }
+    .shares-empty { text-align: center; padding: 4rem 2rem; color: var(--color-text-secondary); font-size: 14px; }
+    .shares-empty strong { display: block; font-size: 16px; color: var(--color-text-primary); margin-bottom: 6px; }
   </style>
 </head>
 <body>
@@ -300,6 +363,7 @@
       <input type="text" id="username-input" placeholder="e.g. sleeperuser" autocomplete="off" />
       <div class="field-label">Season</div>
       <select id="season-select">
+        <option value="2026">2026 Season</option>
         <option value="2025">2025 Season</option>
         <option value="2024" selected>2024 Season</option>
         <option value="2023">2023 Season</option>
@@ -318,6 +382,10 @@
     <div class="topbar-left">
       <span class="topbar-logo">Sleeper Dashboard</span>
       <span class="season-badge" id="season-badge">2024</span>
+      <div class="topbar-nav">
+        <button class="nav-tab active" id="nav-leagues" onclick="setView('leagues')">My Leagues</button>
+        <button class="nav-tab" id="nav-shares" onclick="setView('shares')">Player Shares</button>
+      </div>
     </div>
     <div class="topbar-right">
       <div id="user-avatar-wrap"></div>
@@ -327,6 +395,7 @@
   </nav>
 
   <div class="container">
+    <div id="view-leagues">
     <div id="leagues-loading" class="loading">
       <span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>
     </div>
@@ -372,12 +441,54 @@
         </div>
       </div>
     </div>
+    </div><!-- /view-leagues -->
+
+    <div id="view-shares" style="display:none;">
+      <div class="shares-header">
+        <h2>Player Shares</h2>
+        <p>See which players you own across all your leagues this season</p>
+      </div>
+      <div id="shares-loading" class="loading">
+        <span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>
+      </div>
+      <div id="shares-body" style="display:none;">
+        <div class="shares-stats-bar" id="shares-stats"></div>
+        <div class="shares-toolbar">
+          <div class="search-wrap">
+            <i class="search-icon">⌕</i>
+            <input class="search-input" id="shares-search" type="text" placeholder="Search player…" oninput="searchShares(this.value)" />
+          </div>
+          <div class="filter-pills">
+            <button class="filter-pill active" data-filter="all" onclick="setSharesFilter('all')">All players</button>
+            <button class="filter-pill" data-filter="multi" onclick="setSharesFilter('multi')">Multiple leagues</button>
+          </div>
+        </div>
+        <div class="shares-grid" id="shares-grid"></div>
+      </div>
+    </div><!-- /view-shares -->
+
   </div>
 </div>
 
 <script>
 const API = 'https://api.sleeper.app/v1';
-let state = { user: null, leagues: [], selectedLeague: null, rosters: [], users: [], activeTab: 'standings', rostersLoaded: false };
+let state = { user: null, leagues: [], selectedLeague: null, rosters: [], users: [], players: null, activeTab: 'standings', rostersLoaded: false, playerLeagues: {}, sharesLoaded: false, sharesFilter: 'all', sharesSearch: '' };
+
+async function loadPlayers() {
+  if (state.players) return;
+  try {
+    const r = await fetch(API + '/players/nfl');
+    state.players = await r.json();
+  } catch(e) { state.players = {}; }
+}
+
+function playerName(pid) {
+  if (!state.players) return pid;
+  const p = state.players[pid];
+  if (!p) return pid;
+  if (p.first_name && p.last_name) return p.first_name[0] + '. ' + p.last_name;
+  return p.last_name || p.first_name || pid;
+}
 
 async function api(path) {
   const r = await fetch(API + path);
@@ -512,7 +623,7 @@ async function loadRostersAndUsers(tab) {
   }
   try {
     const lid = state.selectedLeague.league_id;
-    const [rosters, users] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users')]);
+    const [rosters, users] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users'), loadPlayers()]);
     state.rosters = rosters || []; state.users = users || []; state.rostersLoaded = true;
     renderStandings(); renderRosters();
   } catch(e) {
@@ -566,8 +677,8 @@ function renderRosters() {
     const fpta = ((r.settings?.fpts_against||0)+(r.settings?.fpts_against_decimal||0)/100).toFixed(2);
     const pct = Math.round((parseFloat(fpts)/maxFpts)*100);
     const waiver = r.settings?.waiver_position;
-    const starters = (r.starters||[]).slice(0,6).map(pid => '<span class="player-pill starter">' + pid + '</span>').join('');
-    const bench = (r.players||[]).filter(p => !(r.starters||[]).includes(p)).slice(0,4).map(pid => '<span class="player-pill">' + pid + '</span>').join('');
+    const starters = (r.starters||[]).slice(0,6).map(pid => '<span class="player-pill starter">' + playerName(pid) + '</span>').join('');
+    const bench = (r.players||[]).filter(p => !(r.starters||[]).includes(p)).slice(0,4).map(pid => '<span class="player-pill">' + playerName(pid) + '</span>').join('');
     return '<div class="roster-card">' +
       '<div class="roster-owner">' + teamName + '</div>' +
       '<div class="roster-team">' + (owner !== teamName ? owner : '&nbsp;') + '</div>' +
@@ -610,7 +721,7 @@ async function loadMatchupWeek(week) {
   try {
     const lid = state.selectedLeague.league_id;
     if (!state.rostersLoaded) {
-      const [rosters, users] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users')]);
+      const [rosters, users] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users'), loadPlayers()]);
       state.rosters = rosters||[]; state.users = users||[]; state.rostersLoaded = true;
     }
     const matchups = await api('/league/' + lid + '/matchups/' + week);
@@ -695,8 +806,106 @@ function renderSettings() {
     '</div>';
 }
 
+function setView(view) {
+  document.getElementById('view-leagues').style.display = view === 'leagues' ? 'block' : 'none';
+  document.getElementById('view-shares').style.display = view === 'shares' ? 'block' : 'none';
+  document.getElementById('nav-leagues').classList.toggle('active', view === 'leagues');
+  document.getElementById('nav-shares').classList.toggle('active', view === 'shares');
+  if (view === 'shares' && !state.sharesLoaded) loadAllShares();
+}
+
+async function loadAllShares() {
+  document.getElementById('shares-loading').style.display = 'block';
+  document.getElementById('shares-body').style.display = 'none';
+  try {
+    await loadPlayers();
+    const results = await Promise.all(
+      state.leagues.map(l => api('/league/' + l.league_id + '/rosters').then(rosters => ({ league: l, rosters: rosters || [] })))
+    );
+    const playerLeagues = {};
+    results.forEach(({ league, rosters }) => {
+      const myRoster = rosters.find(r => r.owner_id === state.user.user_id);
+      if (!myRoster) return;
+      (myRoster.players || []).forEach(pid => {
+        if (!playerLeagues[pid]) playerLeagues[pid] = [];
+        playerLeagues[pid].push(league);
+      });
+    });
+    state.playerLeagues = playerLeagues;
+    state.sharesLoaded = true;
+    renderShares();
+  } catch(e) {
+    document.getElementById('shares-loading').textContent = 'Could not load player data.';
+  }
+}
+
+const POS_COLORS = { QB:'#993C1D', RB:'#3B6D11', WR:'#185FA5', TE:'#854F0B', K:'#534AB7', DEF:'#6b6b65', FLEX:'#993556', SUPER_FLEX:'#854F0B' };
+
+function renderShares() {
+  document.getElementById('shares-loading').style.display = 'none';
+  document.getElementById('shares-body').style.display = 'block';
+  const { playerLeagues, sharesFilter, sharesSearch } = state;
+  let entries = Object.entries(playerLeagues);
+  if (sharesFilter === 'multi') entries = entries.filter(([,ls]) => ls.length > 1);
+  if (sharesSearch) {
+    const s = sharesSearch.toLowerCase();
+    entries = entries.filter(([pid]) => playerName(pid).toLowerCase().includes(s));
+  }
+  entries.sort((a, b) => b[1].length - a[1].length || playerName(a[0]).localeCompare(playerName(b[0])));
+
+  const total = Object.keys(playerLeagues).length;
+  const multi = Object.values(playerLeagues).filter(l => l.length > 1).length;
+  document.getElementById('shares-stats').innerHTML =
+    '<span class="shares-stat"><strong>' + total + '</strong> unique players</span>' +
+    '<span class="shares-stat"><strong>' + state.leagues.length + '</strong> leagues</span>' +
+    '<span class="shares-stat"><strong>' + multi + '</strong> in multiple leagues</span>';
+
+  if (!entries.length) {
+    document.getElementById('shares-grid').innerHTML =
+      '<div class="shares-empty"><strong>No players found</strong>' + (sharesSearch ? 'Try a different search.' : '') + '</div>';
+    return;
+  }
+
+  document.getElementById('shares-grid').innerHTML = entries.map(([pid, leagues]) => {
+    const p = state.players?.[pid];
+    const name = playerName(pid);
+    const pos = p?.position || '';
+    const nflTeam = p?.team ? p.team + (p.number ? ' · #' + p.number : '') : '';
+    const isMulti = leagues.length > 1;
+    const borderColor = POS_COLORS[pos] || 'var(--color-border)';
+    const chips = leagues.map(l =>
+      '<span class="share-league-chip' + (isMulti ? ' multi' : '') + '" title="' + l.name + '">' + l.name + '</span>'
+    ).join('');
+    return '<div class="share-card" style="border-left-color:' + borderColor + ';">' +
+      '<div class="share-card-header">' +
+        '<div class="share-card-left">' +
+          (pos ? '<span class="pos-badge pos-' + pos + '">' + pos + '</span>' : '') +
+          '<div class="share-player-name">' + name + '</div>' +
+          (nflTeam ? '<div class="share-player-meta">' + nflTeam + '</div>' : '') +
+        '</div>' +
+        '<div class="share-count-wrap">' +
+          '<div class="share-count-num' + (isMulti ? ' multi' : '') + '">' + leagues.length + '</div>' +
+          '<div class="share-count-label">' + (leagues.length === 1 ? 'league' : 'leagues') + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="share-leagues">' + chips + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function setSharesFilter(f) {
+  state.sharesFilter = f;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.toggle('active', p.dataset.filter === f));
+  renderShares();
+}
+
+function searchShares(val) {
+  state.sharesSearch = val;
+  renderShares();
+}
+
 function logout() {
-  state = { user: null, leagues: [], selectedLeague: null, rosters: [], users: [], activeTab: 'standings', rostersLoaded: false };
+  state = { user: null, leagues: [], selectedLeague: null, rosters: [], users: [], players: null, activeTab: 'standings', rostersLoaded: false, playerLeagues: {}, sharesLoaded: false, sharesFilter: 'all', sharesSearch: '' };
   document.getElementById('screen-dash').classList.remove('active');
   document.getElementById('screen-login').classList.add('active');
   document.getElementById('leagues-loading').style.display = 'block';
@@ -706,6 +915,15 @@ function logout() {
   document.getElementById('username-input').value = '';
   document.getElementById('login-btn').disabled = false;
   document.getElementById('login-btn').textContent = 'Load My Leagues';
+  document.getElementById('view-leagues').style.display = 'block';
+  document.getElementById('view-shares').style.display = 'none';
+  document.getElementById('shares-body').style.display = 'none';
+  document.getElementById('shares-loading').style.display = 'block';
+  document.getElementById('shares-grid').innerHTML = '';
+  document.getElementById('shares-search').value = '';
+  document.getElementById('nav-leagues').classList.add('active');
+  document.getElementById('nav-shares').classList.remove('active');
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
 }
 </script>
 </body>
