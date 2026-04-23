@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sleeper Fantasy Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-bg: #ffffff;
+      --color-bg-secondary: #f5f5f3;
+      --color-bg-tertiary: #eeede8;
+      --color-text-primary: #1a1a18;
+      --color-text-secondary: #6b6b65;
+      --color-text-tertiary: #9c9c96;
+      --color-border: rgba(0,0,0,0.10);
+      --color-border-secondary: rgba(0,0,0,0.18);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font-sans: 'Syne', system-ui, sans-serif;
+      --font-mono: 'DM Mono', 'Courier New', monospace;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #1a1a18;
+        --color-bg-secondary: #242422;
+        --color-bg-tertiary: #2c2c2a;
+        --color-text-primary: #f0efe8;
+        --color-text-secondary: #9c9c96;
+        --color-text-tertiary: #6b6b65;
+        --color-border: rgba(255,255,255,0.10);
+        --color-border-secondary: rgba(255,255,255,0.18);
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-primary);
+      min-height: 100vh;
+    }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* LOGIN */
+    .login-wrap {
+      max-width: 440px;
+      margin: 6rem auto 0;
+      background: var(--color-bg);
+      border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem; }
+    .logo-mark {
+      width: 36px; height: 36px; border-radius: var(--radius-md);
+      background: var(--color-text-primary); display: flex; align-items: center; justify-content: center;
+    }
+    .logo-mark span { color: var(--color-bg); font-size: 18px; font-weight: 700; }
+    .logo-text { font-size: 18px; font-weight: 700; color: var(--color-text-primary); }
+    .login-wrap h2 { font-size: 22px; font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px; }
+    .login-wrap p { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 1.5rem; }
+    .field-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .login-wrap input, .login-wrap select {
+      width: 100%; padding: 11px 14px; font-size: 15px;
+      font-family: var(--font-sans);
+      background: var(--color-bg);
+      border: 0.5px solid var(--color-border-secondary);
+      border-radius: var(--radius-md);
+      color: var(--color-text-primary);
+      margin-bottom: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .login-wrap input:focus, .login-wrap select:focus { border-color: var(--color-text-primary); }
+    .btn-primary {
+      width: 100%; padding: 12px; font-size: 15px; font-weight: 500;
+      font-family: var(--font-sans);
+      background: var(--color-text-primary); color: var(--color-bg);
+      border: none; border-radius: var(--radius-md); cursor: pointer; transition: opacity 0.15s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .error-msg { font-size: 13px; color: #A32D2D; margin-top: 10px; }
+
+    /* TOP NAV */
+    .topbar {
+      background: var(--color-bg);
+      border-bottom: 0.5px solid var(--color-border);
+      padding: 0 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px; position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .topbar-logo { font-size: 16px; font-weight: 700; color: var(--color-text-primary); }
+    .season-badge {
+      font-size: 12px; padding: 3px 10px; border-radius: 999px;
+      background: var(--color-bg-secondary); color: var(--color-text-secondary);
+      border: 0.5px solid var(--color-border); font-family: var(--font-mono);
+    }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .avatar-sm {
+      width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+      background: var(--color-bg-secondary); border: 0.5px solid var(--color-border);
+    }
+    .avatar-init {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #185FA5; color: #B5D4F4;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 500;
+    }
+    .user-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+    .btn-sm {
+      font-size: 12px; font-family: var(--font-sans); padding: 6px 12px;
+      border: 0.5px solid var(--color-border-secondary);
+      border-radius: var(--radius-md); background: transparent;
+      color: var(--color-text-secondary); cursor: pointer;
+    }
+    .btn-sm:hover { background: var(--color-bg-secondary); }
+
+    /* LEAGUES */
+    .section-title {
+      font-size: 11px; font-weight: 500; color: var(--color-text-tertiary);
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;
+    }
+    .leagues-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin-bottom: 2rem; }
+    .league-card {
+      background: var(--color-bg); border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: 1rem 1.25rem; cursor: pointer; transition: border-color 0.15s;
+    }
+    .league-card:hover { border-color: var(--color-border-secondary); }
+    .league-card.selected { border: 1.5px solid var(--color-text-primary); }
+    .league-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .league-avatar { width: 38px; height: 38px; border-radius: var(--radius-md); object-fit: cover; background: var(--color-bg-secondary); }
+    .league-avatar-init {
+      width: 38px; height: 38px; border-radius: var(--radius-md);
+      background: #3C3489; color: #CECBF6;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 700;
+    }
+    .league-name { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+    .league-meta { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+    .league-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .stat-chip { background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 6px 8px; }
+    .stat-chip-label { font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-chip-val { font-size: 14px; font-weight: 500; color: var(--color-text-primary); font-family: var(--font-mono); }
+
+    .status-badge { display: inline-flex; align-items: center; font-size: 11px; padding: 3px 9px; border-radius: 999px; font-weight: 500; margin-bottom: 8px; }
+    .status-in_season { background: #EAF3DE; color: #3B6D11; }
+    .status-complete { background: var(--color-bg-secondary); color: var(--color-text-secondary); }
+    .status-pre_draft { background: #FAEEDA; color: #854F0B; }
+    .status-drafting { background: #E6F1FB; color: #185FA5; }
+
+    /* DETAIL PANEL */
+    .detail-panel { background: var(--color-bg); border: 0.5px solid var(--color-border); border-radius: var(--radius-lg); padding: 1.5rem; margin-top: 1rem; }
+    .detail-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.25rem; }
+    .detail-header h2 { font-size: 20px; font-weight: 700; color: var(--color-text-primary); }
+    .detail-header p { font-size: 13px; color: var(--color-text-secondary); margin-top: 3px; }
+    .panel-tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--color-border); margin-bottom: 1.5rem; }
+    .panel-tab {
+      font-size: 13px; font-family: var(--font-sans); padding: 8px 16px;
+      background: transparent; border: none; color: var(--color-text-secondary);
+      cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -0.5px;
+      transition: color 0.1s;
+    }
+    .panel-tab.active { color: var(--color-text-primary); border-bottom-color: var(--color-text-primary); font-weight: 500; }
+    .panel-tab:hover { color: var(--color-text-primary); }
+
+    /* STANDINGS */
+    .standings-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .standings-table th {
+      text-align: left; padding: 8px 10px; color: var(--color-text-tertiary);
+      font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 0.5px solid var(--color-border);
+    }
+    .standings-table td { padding: 10px; border-bottom: 0.5px solid var(--color-border); }
+    .standings-table tr:last-child td { border-bottom: none; }
+    .standings-table td.mono { font-family: var(--font-mono); }
+    .rank-num { font-size: 12px; color: var(--color-text-tertiary); font-family: var(--font-mono); }
+
+    /* ROSTERS */
+    .roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 10px; }
+    .roster-card {
+      background: var(--color-bg-secondary); border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: 1rem 1.25rem;
+    }
+    .roster-owner { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 2px; }
+    .roster-team { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 10px; }
+    .roster-record { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+    .record-item { text-align: center; }
+    .record-label { font-size: 10px; color: var(--color-text-tertiary); text-transform: uppercase; }
+    .record-val { font-size: 17px; font-weight: 700; color: var(--color-text-primary); font-family: var(--font-mono); }
+    .record-val.wins { color: #3B6D11; }
+    .record-val.losses { color: #A32D2D; }
+    .fpts-bar-wrap { margin-top: 8px; }
+    .fpts-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; }
+    .fpts-bar { height: 4px; background: var(--color-bg-tertiary); border-radius: 999px; overflow: hidden; }
+    .fpts-fill { height: 100%; background: #185FA5; border-radius: 999px; transition: width 0.6s ease; }
+    .players-list { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+    .player-pill {
+      font-size: 11px; padding: 3px 8px; border-radius: 999px;
+      border: 0.5px solid var(--color-border); color: var(--color-text-secondary);
+      font-family: var(--font-mono);
+    }
+    .player-pill.starter { background: #E6F1FB; border-color: #B5D4F4; color: #0C447C; }
+
+    /* SCORING */
+    .scoring-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+    .scoring-item {
+      background: var(--color-bg-secondary); border-radius: var(--radius-md);
+      padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .scoring-key { font-size: 12px; color: var(--color-text-secondary); }
+    .scoring-val { font-size: 14px; font-weight: 500; color: var(--color-text-primary); font-family: var(--font-mono); }
+
+    /* SETTINGS */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .settings-grid { grid-template-columns: 1fr; } }
+    .settings-card {
+      background: var(--color-bg-secondary); border-radius: var(--radius-lg);
+      padding: 1rem 1.25rem;
+    }
+    .settings-card h3 { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+    .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 0.5px solid var(--color-border); }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-key { font-size: 13px; color: var(--color-text-secondary); }
+    .settings-val { font-size: 13px; font-weight: 500; color: var(--color-text-primary); font-family: var(--font-mono); }
+
+    /* POSITION BADGES */
+    .pos-badge { display: inline-block; font-size: 10px; padding: 2px 5px; border-radius: 3px; font-weight: 700; font-family: var(--font-mono); margin-right: 2px; }
+    .pos-QB { background: #FAECE7; color: #993C1D; }
+    .pos-RB { background: #EAF3DE; color: #3B6D11; }
+    .pos-WR { background: #E6F1FB; color: #185FA5; }
+    .pos-TE { background: #FAEEDA; color: #854F0B; }
+    .pos-K  { background: #EEEDFE; color: #534AB7; }
+    .pos-DEF { background: var(--color-bg-secondary); color: var(--color-text-secondary); border: 0.5px solid var(--color-border); }
+    .pos-FLEX { background: #FBEAF0; color: #993556; }
+    .pos-BN  { background: var(--color-bg-secondary); color: var(--color-text-tertiary); border: 0.5px solid var(--color-border); }
+    .pos-IDP_FLEX { background: var(--color-bg-secondary); color: var(--color-text-secondary); }
+    .pos-SUPER_FLEX { background: #FAEEDA; color: #854F0B; }
+
+    /* MATCHUPS */
+    .matchups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+    .matchup-card {
+      background: var(--color-bg-secondary); border: 0.5px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: 1rem 1.25rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .matchup-team { flex: 1; }
+    .matchup-team.right { text-align: right; }
+    .matchup-team-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); }
+    .matchup-pts { font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: var(--color-text-primary); }
+    .matchup-pts.winner { color: #3B6D11; }
+    .matchup-vs { font-size: 11px; color: var(--color-text-tertiary); padding: 0 6px; flex-shrink: 0; }
+    .week-selector { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+    .week-selector label { font-size: 13px; color: var(--color-text-secondary); }
+    .week-selector select {
+      font-family: var(--font-sans); font-size: 13px; padding: 6px 10px;
+      border: 0.5px solid var(--color-border-secondary); border-radius: var(--radius-md);
+      background: var(--color-bg); color: var(--color-text-primary); outline: none;
+    }
+
+    /* LOADING */
+    .loading { text-align: center; padding: 3rem; color: var(--color-text-secondary); font-size: 14px; }
+    .loading-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--color-text-tertiary); margin: 0 3px; animation: pulse 1.2s ease-in-out infinite; }
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    @media (max-width: 600px) {
+      .leagues-grid { grid-template-columns: 1fr; }
+      .roster-grid { grid-template-columns: 1fr; }
+      .panel-tab { padding: 8px 10px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="container">
+    <div class="login-wrap">
+      <div class="logo">
+        <div class="logo-mark"><span>S</span></div>
+        <span class="logo-text">Sleeper Dashboard</span>
+      </div>
+      <h2>Your leagues, visualized</h2>
+      <p>Enter your Sleeper username to load your fantasy data</p>
+      <div class="field-label">Username</div>
+      <input type="text" id="username-input" placeholder="e.g. sleeperuser" autocomplete="off" />
+      <div class="field-label">Season</div>
+      <select id="season-select">
+        <option value="2025">2025 Season</option>
+        <option value="2024" selected>2024 Season</option>
+        <option value="2023">2023 Season</option>
+        <option value="2022">2022 Season</option>
+        <option value="2021">2021 Season</option>
+      </select>
+      <button class="btn-primary" id="login-btn" onclick="loadUser()">Load My Leagues</button>
+      <div class="error-msg" id="login-error"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="screen-dash" class="screen">
+  <nav class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">Sleeper Dashboard</span>
+      <span class="season-badge" id="season-badge">2024</span>
+    </div>
+    <div class="topbar-right">
+      <div id="user-avatar-wrap"></div>
+      <span class="user-name" id="user-display"></span>
+      <button class="btn-sm" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div id="leagues-loading" class="loading">
+      <span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span>
+    </div>
+
+    <div id="leagues-container" style="display:none;">
+      <p class="section-title" id="leagues-count-label"></p>
+      <div class="leagues-grid" id="leagues-grid"></div>
+
+      <div id="detail-panel" class="detail-panel" style="display:none;">
+        <div class="detail-header">
+          <div>
+            <h2 id="detail-league-name"></h2>
+            <p id="detail-league-meta"></p>
+          </div>
+          <span id="detail-status-badge"></span>
+        </div>
+
+        <div class="panel-tabs">
+          <button class="panel-tab active" data-tab="standings" onclick="switchTab('standings')">Standings</button>
+          <button class="panel-tab" data-tab="rosters" onclick="switchTab('rosters')">Rosters</button>
+          <button class="panel-tab" data-tab="matchups" onclick="switchTab('matchups')">Matchups</button>
+          <button class="panel-tab" data-tab="scoring" onclick="switchTab('scoring')">Scoring</button>
+          <button class="panel-tab" data-tab="settings" onclick="switchTab('settings')">Settings</button>
+        </div>
+
+        <div id="tab-standings" class="tab-content active">
+          <div class="loading" id="standings-loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>
+          <div id="standings-content"></div>
+        </div>
+        <div id="tab-rosters" class="tab-content">
+          <div class="loading" id="rosters-loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>
+          <div id="rosters-content"></div>
+        </div>
+        <div id="tab-matchups" class="tab-content">
+          <div class="loading" id="matchups-loading" style="display:none;"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>
+          <div id="matchups-content"></div>
+        </div>
+        <div id="tab-scoring" class="tab-content">
+          <div id="scoring-content"></div>
+        </div>
+        <div id="tab-settings" class="tab-content">
+          <div id="settings-content"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://api.sleeper.app/v1';
+let state = { user: null, leagues: [], selectedLeague: null, rosters: [], users: [], activeTab: 'standings', rostersLoaded: false };
+
+async function api(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error('API ' + r.status);
+  return r.json();
+}
+
+async function loadUser() {
+  const username = document.getElementById('username-input').value.trim();
+  const season = document.getElementById('season-select').value;
+  if (!username) return;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  btn.disabled = true; btn.textContent = 'Loading...'; err.textContent = '';
+  try {
+    const user = await api('/user/' + username);
+    if (!user || !user.user_id) throw new Error('Not found');
+    state.user = user; state.season = season;
+    showDash();
+    loadLeagues();
+  } catch(e) {
+    err.textContent = 'User not found. Double-check the username and try again.';
+    btn.disabled = false; btn.textContent = 'Load My Leagues';
+  }
+}
+
+document.getElementById('username-input').addEventListener('keydown', e => { if (e.key === 'Enter') loadUser(); });
+
+function showDash() {
+  document.getElementById('screen-login').classList.remove('active');
+  document.getElementById('screen-dash').classList.add('active');
+  document.getElementById('season-badge').textContent = state.season + ' Season';
+  const u = state.user;
+  const wrap = document.getElementById('user-avatar-wrap');
+  if (u.avatar) {
+    wrap.innerHTML = '<img class="avatar-sm" src="https://sleepercdn.com/avatars/thumbs/' + u.avatar + '" onerror="this.style.display=\'none\'">';
+  } else {
+    wrap.innerHTML = '<div class="avatar-init">' + (u.display_name||u.username||'?')[0].toUpperCase() + '</div>';
+  }
+  document.getElementById('user-display').textContent = u.display_name || u.username;
+}
+
+async function loadLeagues() {
+  try {
+    const leagues = await api('/user/' + state.user.user_id + '/leagues/nfl/' + state.season);
+    state.leagues = leagues || [];
+    renderLeagues();
+  } catch(e) {
+    document.getElementById('leagues-loading').textContent = 'Could not load leagues.';
+  }
+}
+
+function statusLabel(s) {
+  return { in_season: 'In Season', complete: 'Complete', pre_draft: 'Pre-Draft', drafting: 'Drafting' }[s] || s;
+}
+
+function renderLeagues() {
+  document.getElementById('leagues-loading').style.display = 'none';
+  document.getElementById('leagues-container').style.display = 'block';
+  document.getElementById('leagues-count-label').textContent = state.leagues.length + ' league' + (state.leagues.length !== 1 ? 's' : '') + ' · ' + state.season;
+  const grid = document.getElementById('leagues-grid');
+  if (!state.leagues.length) { grid.innerHTML = '<p style="color:var(--color-text-secondary);font-size:14px;">No leagues found for ' + state.season + '.</p>'; return; }
+  grid.innerHTML = state.leagues.map(l => {
+    const status = l.status || 'unknown';
+    const avatarHtml = l.avatar
+      ? '<img class="league-avatar" src="https://sleepercdn.com/avatars/thumbs/' + l.avatar + '" onerror="this.style.display=\'none\'">'
+      : '<div class="league-avatar-init">' + (l.name||'L')[0].toUpperCase() + '</div>';
+    return '<div class="league-card" id="lcard-' + l.league_id + '" onclick="selectLeague(\'' + l.league_id + '\')">' +
+      '<div class="league-card-header">' + avatarHtml +
+        '<div><div class="league-name">' + (l.name||'Unnamed League') + '</div>' +
+        '<div class="league-meta">' + l.total_rosters + ' teams &middot; ' + (l.season_type||'regular') + '</div></div>' +
+      '</div>' +
+      '<div><span class="status-badge status-' + status + '">' + statusLabel(status) + '</span></div>' +
+      '<div class="league-stats">' +
+        '<div class="stat-chip"><div class="stat-chip-label">Teams</div><div class="stat-chip-val">' + l.total_rosters + '</div></div>' +
+        '<div class="stat-chip"><div class="stat-chip-label">Season</div><div class="stat-chip-val">' + l.season + '</div></div>' +
+        '<div class="stat-chip"><div class="stat-chip-label">Type</div><div class="stat-chip-val">' + (l.season_type||'reg').slice(0,3).toUpperCase() + '</div></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function selectLeague(leagueId) {
+  document.querySelectorAll('.league-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('lcard-' + leagueId).classList.add('selected');
+  const league = state.leagues.find(l => l.league_id === leagueId);
+  state.selectedLeague = league;
+  state.rosters = []; state.users = []; state.rostersLoaded = false;
+
+  const panel = document.getElementById('detail-panel');
+  panel.style.display = 'block';
+  setTimeout(() => panel.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+
+  document.getElementById('detail-league-name').textContent = league.name;
+  document.getElementById('detail-league-meta').textContent = league.total_rosters + ' teams · ' + league.season + ' · ' + (league.season_type||'regular') + ' season';
+  document.getElementById('detail-status-badge').innerHTML = '<span class="status-badge status-' + (league.status||'unknown') + '">' + statusLabel(league.status) + '</span>';
+
+  resetTabs();
+  switchTab('standings');
+}
+
+function resetTabs() {
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('[data-tab="standings"]').classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-standings').classList.add('active');
+  document.getElementById('standings-loading').style.display = 'block';
+  document.getElementById('standings-content').innerHTML = '';
+  document.getElementById('rosters-loading').style.display = 'block';
+  document.getElementById('rosters-content').innerHTML = '';
+  document.getElementById('matchups-content').innerHTML = '';
+  document.getElementById('scoring-content').innerHTML = '';
+  document.getElementById('settings-content').innerHTML = '';
+}
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'standings' || tab === 'rosters') loadRostersAndUsers(tab);
+  else if (tab === 'matchups') loadMatchups();
+  else if (tab === 'scoring') renderScoring();
+  else if (tab === 'settings') renderSettings();
+}
+
+async function loadRostersAndUsers(tab) {
+  if (state.rostersLoaded) {
+    if (tab === 'standings') renderStandings();
+    else renderRosters();
+    return;
+  }
+  try {
+    const lid = state.selectedLeague.league_id;
+    const [rosters, users] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users')]);
+    state.rosters = rosters || []; state.users = users || []; state.rostersLoaded = true;
+    renderStandings(); renderRosters();
+  } catch(e) {
+    document.getElementById('standings-loading').textContent = 'Could not load roster data.';
+  }
+}
+
+function getUserForRoster(roster) {
+  return state.users.find(u => u.user_id === roster.owner_id) || {};
+}
+
+function renderStandings() {
+  document.getElementById('standings-loading').style.display = 'none';
+  const sorted = [...state.rosters].sort((a,b) => {
+    const aw = a.settings?.wins||0, bw = b.settings?.wins||0;
+    if (bw !== aw) return bw - aw;
+    return ((b.settings?.fpts||0)+(b.settings?.fpts_decimal||0)/100) - ((a.settings?.fpts||0)+(a.settings?.fpts_decimal||0)/100);
+  });
+  const rows = sorted.map((r,i) => {
+    const u = getUserForRoster(r);
+    const teamName = u.metadata?.team_name || u.display_name || u.username || 'Team ' + r.roster_id;
+    const w = r.settings?.wins||0, l = r.settings?.losses||0, t = r.settings?.ties||0;
+    const fpts = ((r.settings?.fpts||0)+(r.settings?.fpts_decimal||0)/100).toFixed(2);
+    const fpta = ((r.settings?.fpts_against||0)+(r.settings?.fpts_against_decimal||0)/100).toFixed(2);
+    const streak = r.settings?.streak;
+    const streakHtml = streak ? '<span class="status-badge ' + (streak>0?'status-in_season':'status-complete') + '">' + (streak>0?'W'+streak:'L'+Math.abs(streak)) + '</span>' : '—';
+    return '<tr><td><span class="rank-num">' + (i+1) + '</span></td>' +
+      '<td style="font-weight:500;">' + teamName + '</td>' +
+      '<td class="mono" style="color:#3B6D11;">' + w + '</td>' +
+      '<td class="mono" style="color:#A32D2D;">' + l + '</td>' +
+      '<td class="mono" style="color:var(--color-text-tertiary);">' + t + '</td>' +
+      '<td class="mono">' + fpts + '</td>' +
+      '<td class="mono" style="color:var(--color-text-secondary);">' + fpta + '</td>' +
+      '<td>' + streakHtml + '</td></tr>';
+  }).join('');
+  document.getElementById('standings-content').innerHTML = '<table class="standings-table"><thead><tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>T</th><th>PF</th><th>PA</th><th>Streak</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+function renderRosters() {
+  document.getElementById('rosters-loading').style.display = 'none';
+  const l = state.selectedLeague;
+  const positions = l.roster_positions || [];
+  const posHtml = positions.map(p => '<span class="pos-badge pos-' + p + '">' + p + '</span>').join('');
+  const maxFpts = Math.max(...state.rosters.map(r => (r.settings?.fpts||0)+(r.settings?.fpts_decimal||0)/100), 1);
+  const cards = state.rosters.map(r => {
+    const u = getUserForRoster(r);
+    const teamName = u.metadata?.team_name || u.display_name || u.username || 'Team ' + r.roster_id;
+    const owner = u.display_name || u.username || '';
+    const w = r.settings?.wins||0, lo = r.settings?.losses||0;
+    const fpts = ((r.settings?.fpts||0)+(r.settings?.fpts_decimal||0)/100).toFixed(2);
+    const fpta = ((r.settings?.fpts_against||0)+(r.settings?.fpts_against_decimal||0)/100).toFixed(2);
+    const pct = Math.round((parseFloat(fpts)/maxFpts)*100);
+    const waiver = r.settings?.waiver_position;
+    const starters = (r.starters||[]).slice(0,6).map(pid => '<span class="player-pill starter">' + pid + '</span>').join('');
+    const bench = (r.players||[]).filter(p => !(r.starters||[]).includes(p)).slice(0,4).map(pid => '<span class="player-pill">' + pid + '</span>').join('');
+    return '<div class="roster-card">' +
+      '<div class="roster-owner">' + teamName + '</div>' +
+      '<div class="roster-team">' + (owner !== teamName ? owner : '&nbsp;') + '</div>' +
+      '<div class="roster-record">' +
+        '<div class="record-item"><div class="record-label">W</div><div class="record-val wins">' + w + '</div></div>' +
+        '<div class="record-item"><div class="record-label">L</div><div class="record-val losses">' + lo + '</div></div>' +
+        '<div class="record-item"><div class="record-label">PF</div><div class="record-val" style="font-size:13px;">' + fpts + '</div></div>' +
+        '<div class="record-item"><div class="record-label">PA</div><div class="record-val" style="font-size:13px;color:var(--color-text-secondary);">' + fpta + '</div></div>' +
+        (waiver !== undefined ? '<div class="record-item"><div class="record-label">WAB</div><div class="record-val" style="font-size:13px;">#' + waiver + '</div></div>' : '') +
+      '</div>' +
+      '<div class="fpts-bar-wrap"><div class="fpts-label"><span>Points scored</span><span>' + fpts + '</span></div><div class="fpts-bar"><div class="fpts-fill" style="width:' + pct + '%"></div></div></div>' +
+      '<div class="players-list">' + starters + bench + '</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('rosters-content').innerHTML =
+    '<div style="margin-bottom:1rem;"><p class="section-title">Lineup Positions</p><div style="display:flex;flex-wrap:wrap;gap:4px;">' + posHtml + '</div></div>' +
+    '<div class="roster-grid">' + cards + '</div>';
+}
+
+async function loadMatchups() {
+  let nflState = null;
+  try { nflState = await api('/state/nfl'); } catch(e) {}
+  const currentWeek = nflState?.week || 1;
+  const maxWeek = Math.min(nflState?.week || 18, 18);
+  const options = Array.from({length: maxWeek}, (_,i) => {
+    const w = i+1;
+    return '<option value="' + w + '"' + (w === currentWeek ? ' selected' : '') + '>Week ' + w + '</option>';
+  }).join('');
+  document.getElementById('matchups-content').innerHTML =
+    '<div class="week-selector"><label>Week</label>' +
+    '<select id="week-picker" onchange="loadMatchupWeek(parseInt(this.value))">' + options + '</select></div>' +
+    '<div id="matchup-results"></div>';
+  loadMatchupWeek(currentWeek);
+}
+
+async function loadMatchupWeek(week) {
+  const el = document.getElementById('matchup-results');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>';
+  try {
+    const lid = state.selectedLeague.league_id;
+    if (!state.rostersLoaded) {
+      const [rosters, users] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users')]);
+      state.rosters = rosters||[]; state.users = users||[]; state.rostersLoaded = true;
+    }
+    const matchups = await api('/league/' + lid + '/matchups/' + week);
+    if (!matchups || !matchups.length) { el.innerHTML = '<p style="color:var(--color-text-secondary);font-size:14px;">No matchup data for week ' + week + '.</p>'; return; }
+    const byId = {};
+    matchups.forEach(m => { if (!byId[m.matchup_id]) byId[m.matchup_id]=[]; byId[m.matchup_id].push(m); });
+    const cards = Object.values(byId).map(pair => {
+      if (pair.length < 2) return '';
+      const [a, b] = pair;
+      const aRoster = state.rosters.find(r => r.roster_id === a.roster_id) || {};
+      const bRoster = state.rosters.find(r => r.roster_id === b.roster_id) || {};
+      const aUser = getUserForRoster(aRoster);
+      const bUser = getUserForRoster(bRoster);
+      const aName = aUser.metadata?.team_name || aUser.display_name || aUser.username || 'Team ' + a.roster_id;
+      const bName = bUser.metadata?.team_name || bUser.display_name || bUser.username || 'Team ' + b.roster_id;
+      const apts = parseFloat((a.points||0).toFixed(2));
+      const bpts = parseFloat((b.points||0).toFixed(2));
+      return '<div class="matchup-card">' +
+        '<div class="matchup-team"><div class="matchup-team-name">' + aName + '</div><div class="matchup-pts' + (apts>bpts?' winner':'') + '">' + apts.toFixed(2) + '</div></div>' +
+        '<div class="matchup-vs">vs</div>' +
+        '<div class="matchup-team right"><div class="matchup-team-name">' + bName + '</div><div class="matchup-pts' + (bpts>apts?' winner':'') + '">' + bpts.toFixed(2) + '</div></div>' +
+      '</div>';
+    }).join('');
+    el.innerHTML = '<div class="matchups-grid">' + cards + '</div>';
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--color-text-secondary);font-size:14px;">Could not load matchups for week ' + week + '.</p>';
+  }
+}
+
+const SCORING_LABELS = {
+  pass_yd:'Pass yard',pass_td:'Pass TD',pass_int:'INT thrown',rush_yd:'Rush yard',rush_td:'Rush TD',
+  rec:'Reception',rec_yd:'Rec yard',rec_td:'Rec TD',fum_lost:'Fumble lost',bonus_rec_te:'TE bonus',
+  pass_2pt:'Pass 2pt conv',rush_2pt:'Rush 2pt conv',rec_2pt:'Rec 2pt conv',
+  xpm:'XP made',fg_0_19:'FG 0–19 yd',fg_20_29:'FG 20–29 yd',fg_30_39:'FG 30–39 yd',
+  fg_40_49:'FG 40–49 yd',fg_50p:'FG 50+ yd',fgm:'FG made',
+  def_st_td:'Def/ST TD',pts_allow_0:'Pts allowed 0',pts_allow_1_6:'Pts allowed 1–6',
+  pts_allow_7_13:'Pts allowed 7–13',pts_allow_14_20:'Pts allowed 14–20',
+  pts_allow_21_27:'Pts allowed 21–27',pts_allow_28_34:'Pts allowed 28–34',pts_allow_35p:'Pts allowed 35+',
+  sack:'Sack','int':'DEF interception',fum_rec:'DEF fumble rec',safe:'Safety',blk_kick:'Blocked kick',
+  st_fum_rec:'ST fumble rec',st_tkl_solo:'ST solo tackle',tkl_solo:'Solo tackle',tkl_loss:'Tackle for loss',
+  idp_sack:'IDP sack',pass_cmp_40p:'Completion 40+ yd',rush_40p:'Rush 40+ yd',rec_40p:'Rec 40+ yd'
+};
+
+function renderScoring() {
+  const l = state.selectedLeague; if (!l) return;
+  const ss = l.scoring_settings || {};
+  const entries = Object.entries(ss).filter(([k,v]) => v !== 0).sort((a,b) => Math.abs(b[1])-Math.abs(a[1]));
+  const items = entries.map(([k,v]) => {
+    const label = SCORING_LABELS[k] || k.replace(/_/g,' ');
+    const color = v < 0 ? '#A32D2D' : 'var(--color-text-primary)';
+    return '<div class="scoring-item"><span class="scoring-key">' + label + '</span><span class="scoring-val" style="color:' + color + ';">' + (v>0?'+':'') + v + '</span></div>';
+  }).join('');
+  document.getElementById('scoring-content').innerHTML =
+    '<p class="section-title" style="margin-bottom:12px;">' + entries.length + ' active scoring rules</p>' +
+    '<div class="scoring-grid">' + (items || '<p style="color:var(--color-text-secondary);font-size:14px;">No scoring settings found.</p>') + '</div>';
+}
+
+function renderSettings() {
+  const l = state.selectedLeague; if (!l) return;
+  const s = l.settings || {};
+  const positions = l.roster_positions || [];
+  const posCount = {};
+  positions.forEach(p => { posCount[p] = (posCount[p]||0)+1; });
+  const posHtml = Object.entries(posCount).map(([p,c]) => '<div class="settings-row"><span class="settings-key"><span class="pos-badge pos-' + p + '">' + p + '</span></span><span class="settings-val">' + c + '</span></div>').join('');
+  const waverType = ['Standard','FAAB','Rolling'][s.waiver_type] || (s.waiver_type !== undefined ? String(s.waiver_type) : '—');
+  const generalRows = [
+    ['Max teams', l.total_rosters],
+    ['Playoff teams', s.playoff_teams||'—'],
+    ['Playoff start week', s.playoff_week_start||'—'],
+    ['Trade deadline', s.trade_deadline ? 'Week ' + s.trade_deadline : '—'],
+    ['Waiver type', waverType],
+    ['FAAB budget', s.waiver_budget !== undefined ? '$' + s.waiver_budget : '—'],
+    ['Max keepers', s.max_keepers||'0'],
+    ['Draft rounds', s.draft_rounds||'—'],
+    ['IR / Reserve slots', s.reserve_slots||'0'],
+    ['Taxi squad slots', s.taxi_slots||'0'],
+  ].map(([k,v]) => '<div class="settings-row"><span class="settings-key">' + k + '</span><span class="settings-val">' + v + '</span></div>').join('');
+  document.getElementById('settings-content').innerHTML =
+    '<div class="settings-grid">' +
+      '<div class="settings-card"><h3>League settings</h3>' + generalRows + '</div>' +
+      '<div class="settings-card"><h3>Roster positions</h3>' + posHtml + '</div>' +
+    '</div>';
+}
+
+function logout() {
+  state = { user: null, leagues: [], selectedLeague: null, rosters: [], users: [], activeTab: 'standings', rostersLoaded: false };
+  document.getElementById('screen-dash').classList.remove('active');
+  document.getElementById('screen-login').classList.add('active');
+  document.getElementById('leagues-loading').style.display = 'block';
+  document.getElementById('leagues-container').style.display = 'none';
+  document.getElementById('detail-panel').style.display = 'none';
+  document.getElementById('leagues-grid').innerHTML = '';
+  document.getElementById('username-input').value = '';
+  document.getElementById('login-btn').disabled = false;
+  document.getElementById('login-btn').textContent = 'Load My Leagues';
+}
+</script>
+</body>
+</html>
