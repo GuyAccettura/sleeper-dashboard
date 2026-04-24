@@ -500,11 +500,42 @@ function isPick(pid) { return typeof pid === 'string' && pid.startsWith('__pick_
 
 function ordinal(n) { return n + (['th','st','nd','rd'][n < 4 ? n : 0] || 'th'); }
 
-function pickKey(season, round) { return '__pick__' + season + '__' + round; }
+function pickKey(season, round, slot) { return '__pick__' + season + '__' + round + '__' + slot; }
 
 function pickLabel(key) {
-  const parts = key.split('__');
-  return parts[2] + ' ' + ordinal(parseInt(parts[3])) + ' Round Pick';
+  const [,, season, round, slot] = key.split('__');
+  return season + ' ' + round + '.' + String(slot).padStart(2, '0');
+}
+
+// Builds the full pick ownership list for a league using traded_picks + roster draft_slots.
+// traded_picks only contains picks that changed hands; own untraded picks are inferred.
+function computeAllPicks(rosters, tradedPicks, season, draftRounds) {
+  const rounds = parseInt(draftRounds) || 3;
+  const baseYear = parseInt(season) || new Date().getFullYear();
+  // Show picks for current season + next 2
+  const seasons = [String(baseYear), String(baseYear + 1), String(baseYear + 2)];
+  // Also include any seasons already referenced in tradedPicks
+  (tradedPicks || []).forEach(p => { if (!seasons.includes(String(p.season))) seasons.push(String(p.season)); });
+
+  // Map: "season_round_ownerRosterId" -> currentRosterId
+  const tradedMap = {};
+  (tradedPicks || []).forEach(p => {
+    tradedMap[p.season + '_' + p.round + '_' + p.owner_id] = p.roster_id;
+  });
+
+  const allPicks = [];
+  seasons.forEach(s => {
+    for (let round = 1; round <= rounds; round++) {
+      rosters.forEach(r => {
+        const slot = r.settings?.draft_slot;
+        if (!slot) return;
+        const key = s + '_' + round + '_' + r.roster_id;
+        const holder = tradedMap[key] !== undefined ? tradedMap[key] : r.roster_id;
+        allPicks.push({ season: s, round, slot, roster_id: holder });
+      });
+    }
+  });
+  return allPicks;
 }
 
 async function api(path) {
@@ -640,12 +671,10 @@ async function loadRostersAndUsers(tab) {
   }
   try {
     const lid = state.selectedLeague.league_id;
-    const [rosters, users, drafts, tradedPicks] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users'), api('/league/' + lid + '/drafts'), api('/league/' + lid + '/traded_picks'), loadPlayers()]);
+    const [rosters, users, tradedPicks] = await Promise.all([api('/league/' + lid + '/rosters'), api('/league/' + lid + '/users'), api('/league/' + lid + '/traded_picks'), loadPlayers()]);
     state.rosters = rosters || []; state.users = users || [];
-    const futureDrafts = (drafts || []).filter(d => d.status !== 'complete');
-    const pickArrays = await Promise.all(futureDrafts.map(d => api('/draft/' + d.draft_id + '/picks').then(picks => ({ season: d.season, picks: picks || [] }))));
-    const draftPicks = pickArrays.flatMap(({ season, picks }) => picks.filter(p => p.roster_id).map(p => ({ season, round: p.round, roster_id: p.roster_id })));
-    state.leagueTradedPicks = draftPicks.length ? draftPicks : (tradedPicks || []).map(p => ({ season: p.season, round: p.round, roster_id: p.roster_id }));
+    const draftRounds = state.selectedLeague.settings?.draft_rounds;
+    state.leagueTradedPicks = computeAllPicks(state.rosters, tradedPicks, state.selectedLeague.season, draftRounds);
     state.rostersLoaded = true;
     renderStandings(); renderRosters();
   } catch(e) {
@@ -703,8 +732,8 @@ function renderRosters() {
     const starterSet = new Set(validStarters);
     const starters = validStarters.map(pid => '<span class="player-pill starter">' + playerName(pid) + '</span>').join('');
     const bench = (r.players||[]).filter(p => !starterSet.has(p)).map(pid => '<span class="player-pill">' + playerName(pid) + '</span>').join('');
-    const myPicks = (state.leagueTradedPicks||[]).filter(p => p.roster_id === r.roster_id).sort((a,b) => a.season - b.season || a.round - b.round);
-    const picksHtml = myPicks.length ? myPicks.map(p => '<span class="player-pill pick">' + p.season + ' ' + ordinal(p.round) + '</span>').join('') : '';
+    const myPicks = (state.leagueTradedPicks||[]).filter(p => p.roster_id === r.roster_id).sort((a,b) => a.season - b.season || a.round - b.round || a.slot - b.slot);
+    const picksHtml = myPicks.length ? myPicks.map(p => '<span class="player-pill pick">' + p.season + ' ' + p.round + '.' + String(p.slot).padStart(2,'0') + '</span>').join('') : '';
     return '<div class="roster-card">' +
       '<div class="roster-owner">' + teamName + '</div>' +
       '<div class="roster-team">' + (owner !== teamName ? owner : '&nbsp;') + '</div>' +
@@ -848,16 +877,11 @@ async function loadAllShares() {
     await loadPlayers();
     const results = await Promise.all(
       state.leagues.map(async l => {
-        const [rosters, drafts, tradedPicks] = await Promise.all([
+        const [rosters, tradedPicks] = await Promise.all([
           api('/league/' + l.league_id + '/rosters'),
-          api('/league/' + l.league_id + '/drafts'),
           api('/league/' + l.league_id + '/traded_picks')
         ]);
-        const futureDrafts = (drafts || []).filter(d => d.status !== 'complete');
-        const pickArrays = await Promise.all(futureDrafts.map(d => api('/draft/' + d.draft_id + '/picks').then(picks => ({ season: d.season, picks: picks || [] }))));
-        const draftPicks = pickArrays.flatMap(({ season, picks }) => picks.filter(p => p.roster_id).map(p => ({ season, round: p.round, roster_id: p.roster_id })));
-        // merge: draft picks take precedence, fall back to traded_picks for leagues with no draft yet
-        const picks = draftPicks.length ? draftPicks : (tradedPicks || []).map(p => ({ season: p.season, round: p.round, roster_id: p.roster_id }));
+        const picks = computeAllPicks(rosters || [], tradedPicks, l.season, l.settings?.draft_rounds);
         return { league: l, rosters: rosters || [], picks };
       })
     );
@@ -870,7 +894,7 @@ async function loadAllShares() {
         playerLeagues[pid].push(league);
       });
       picks.filter(p => p.roster_id === myRoster.roster_id).forEach(p => {
-        const key = pickKey(p.season, p.round);
+        const key = pickKey(p.season, p.round, p.slot);
         if (!playerLeagues[key]) playerLeagues[key] = [];
         playerLeagues[key].push(league);
       });
